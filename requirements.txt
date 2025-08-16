@@ -1,0 +1,8 @@
+keyboard
+numpy
+sounddevice
+python-dotenv
+pyperclip
+pynput
+openai
+PySide6

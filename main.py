@@ -1,13 +1,10 @@
 # main.py
 
-import sys
-
-
-import nasikh
+from nasikh import Nasikh
 
 def main():
     """Main function to run the Dictation Application."""
-    dictation = nasikh.Nasikh()
+    dictation = Nasikh()
     dictation.run()
 
 

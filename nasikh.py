@@ -13,34 +13,32 @@ import threading
 import numpy as np
 import sounddevice as sd
 from openai import OpenAI
-from typing import Optional, List, Dict
+from typing import List, Dict
 from pynput.keyboard import Key, Controller, GlobalHotKeys
 from PySide6.QtGui import QIcon, QAction
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
-
-
 
 
 class Nasikh:
     def __init__(self):
         # ________ Provider, Models And Prompts ________
         # Transcription Model
-        self.transcription_provider: Optional[str | None] = None
-        self.transcription_model: Optional[str | None] = None
+        self.transcription_provider: str | None = None
+        self.transcription_model: str | None = None
         # Chat Models
-        self.arabic_cleanup_provider: Optional[str | None] = None
-        self.arabic_cleanup_model: Optional[str | None] = None
-        self.english_cleanup_provider: Optional[str | None] = None
-        self.english_cleanup_model: Optional[str | None] = None
-        self.translation_provider: Optional[str | None] = None
-        self.translation_model: Optional[str | None] = None
+        self.arabic_cleanup_provider: str | None = None
+        self.arabic_cleanup_model: str | None = None
+        self.english_cleanup_provider: str | None = None
+        self.english_cleanup_model: str | None = None
+        self.translation_provider: str | None = None
+        self.translation_model: str | None = None
         # Prompts
-        self.arabic_prompt: Optional[str | None] = None
-        self.english_prompt: Optional[str | None] = None
-        self.translation_prompt: Optional[str | None] = None
+        self.arabic_prompt: str | None = None
+        self.english_prompt: str | None = None
+        self.translation_prompt: str | None = None
 
         # __________ API Keys __________
-        self.api_keys: Dict[str, Optional[str | None]] = {
+        self.api_keys: Dict[str, str | None] = {
             "groq": None,
             "openrouter": None,
         }
@@ -63,40 +61,40 @@ class Nasikh:
         self.RATE: int = 16000
 
         # __________ Operations __________
-        self.mode: Optional[str | None] = None
+        self.mode: str | None = None
         self.recording: bool = False
 
         # ____________ System ____________
         self.system: str = platform.system().lower()
         self.controller = Controller()
-        self.listener: Optional[GlobalHotKeys | None] = None
+        self.listener: GlobalHotKeys | None = None
         self.thread_lock = threading.Lock()
 
         # ________ GUI Application _________
-        self.app: Optional[QApplication | None] = None
-        self.icon: Optional[QIcon | None] = None
+        self.app: QApplication | None = None
+        self.icon: QIcon | None = None
 
         # __________ Logging __________
         # Set up logging
         self.log_level: str = "DEBUG"
-        self._setup_logging()
+        self.setup_logging()
         
         # Log initialization
         self.log.info("="*40)
         self.log.info("Nasikh initialized")
 
         # ___________ Performance __________
-        self.dictation_start: Optional[float | None] = None
-        self.dictation_end: Optional[float | None] = None
-        self.dictation_time: Optional[float | None] = None
-        self.transcription_start: Optional[float | None] = None
-        self.transcription_end: Optional[float | None] = None
-        self.cleanup_start: Optional[float | None] = None
-        self.cleanup_end: Optional[float | None] = None
-        self.audio_processing_start: Optional[float | None] = None
-        self.audio_processing_end: Optional[float | None] = None
+        self.dictation_start: float | None = None
+        self.dictation_end: float | None = None
+        self.dictation_time: float | None = None
+        self.transcription_start: float | None = None
+        self.transcription_end: float | None = None
+        self.cleanup_start: float | None = None
+        self.cleanup_end: float | None = None
+        self.audio_processing_start: float | None = None
+        self.audio_processing_end: float | None = None
 
-    def _setup_logging(self):
+    def setup_logging(self):
         """Configure logging for the dictation app."""
         # Create logger
         self.log = logging.getLogger('Nasikh')
@@ -300,7 +298,7 @@ class Nasikh:
         )
         self.stream.start()
 
-    def stop_recording(self) -> Optional[io.BytesIO | None]:
+    def stop_recording(self) -> io.BytesIO | None:
         """Stops the stream and returns the audio data as a WAV buffer."""
         if self.stream:
             self.stream.stop()
@@ -325,7 +323,7 @@ class Nasikh:
         duration_seconds = len(audio_data) / self.RATE
 
         #log the audio
-        self.log.info(f"Audio size: {file_size_mb:.2f} MB")
+        self.log.info(f"Audio size: {file_size_mb:.2f}MB")
         self.log.info(f"Audio duration: {duration_seconds:.1f} seconds")
 
         # Log dictation time
@@ -437,9 +435,7 @@ class Nasikh:
 
     def run(self) -> None:
         """Main method to handle dictation"""
-        print("✅ Dictation trigger ready!")
-        print("📌 Press the hotkey to start/stop recording")
-        print()
+        print("✅ Dictation App ready!")
 
         # Load the configuration
         self.get_json_config()
@@ -455,7 +451,7 @@ class Nasikh:
 
         # Create the system tray icon
         tray = QSystemTrayIcon(self.icon, parent=self.app)
-        tray.setToolTip("Dictation App")
+        tray.setToolTip("Nasikh")
         tray.setVisible(True)
 
         # Create the menu
@@ -476,23 +472,17 @@ class Nasikh:
                 '<alt>+w': lambda: self.toggle_dictation("translation"),
                 '<alt>+a': lambda: self.toggle_dictation("arabic"),
                 '<esc>': self.cancel_recording,
-                '<alt>+<shift>+q': self.exit_program
             }
 
             # Start the listener in the background. DO NOT .join() it.
             self.listener = GlobalHotKeys(hotkeys)
             self.listener.start()
-            # This should be commented when we have GUI
-            # self.listener.join()
 
         elif self.system in ["windows", "linux"]:
             keyboard.add_hotkey('alt+q', callback=self.toggle_dictation, args=("english",))
             keyboard.add_hotkey('alt+w', callback=self.toggle_dictation, args=("translation",))
             keyboard.add_hotkey('alt+a', callback=self.toggle_dictation, args=("arabic",))
             keyboard.add_hotkey('esc', callback=self.cancel_recording)
-            keyboard.add_hotkey('alt+shift+q', callback=self.exit_program)
-            # This should be commented when we have GUI
-            # keyboard.wait()
 
         # run the GUI application
         sys.exit(self.app.exec())

@@ -596,6 +596,14 @@ class Nasikh:
         arabic_provider_menu = QComboBox()
         arabic_provider_menu.addItems(self.chat_endpoints.keys())
 
+        models = self.get_provider_chat_models(arabic_provider_menu.currentText())
+        arabic_model_menu = QComboBox()
+        arabic_model_menu.addItems(models)
+        
+        arabic_provider_menu.currentTextChanged.connect(
+            lambda provider: self.update_model_menu(arabic_model_menu, provider)
+        )
+
         rich_text = "<html><head/><body>"
         rich_text += f"<center> </center>"
         rich_text += "</body></html>"
@@ -604,6 +612,7 @@ class Nasikh:
         arabic_layout = QVBoxLayout()
         arabic_layout.addWidget(arabic_provider_label)
         arabic_layout.addWidget(arabic_provider_menu)
+        arabic_layout.addWidget(arabic_model_menu)
         arabic_layout.addWidget(self.arabic_field)
         arabic_layout.addStretch(1)
 
@@ -616,6 +625,14 @@ class Nasikh:
         translation_provider_menu = QComboBox()
         translation_provider_menu.addItems(self.chat_endpoints.keys())
 
+        models = self.get_provider_chat_models(translation_provider_menu.currentText())
+        translation_model_menu = QComboBox()
+        translation_model_menu.addItems(models)
+        
+        translation_provider_menu.currentTextChanged.connect(
+            lambda provider: self.update_model_menu(translation_model_menu, provider)
+        )
+
         rich_text = "<html><head/><body>"
         rich_text += f"<center> </center>"
         rich_text += "</body></html>"
@@ -624,6 +641,7 @@ class Nasikh:
         translation_layout = QVBoxLayout()
         translation_layout.addWidget(translation_provider_label)
         translation_layout.addWidget(translation_provider_menu)
+        translation_layout.addWidget(translation_model_menu)
         translation_layout.addWidget(self.translation_field)
         translation_layout.addStretch(1)
 

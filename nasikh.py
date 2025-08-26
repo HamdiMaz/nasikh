@@ -16,7 +16,21 @@ from openai import OpenAI
 from typing import List, Dict
 from pynput.keyboard import Key, Controller, GlobalHotKeys
 from PySide6.QtGui import QIcon, QAction
-from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QApplication,
+    QTabWidget,
+    QLineEdit,
+    QDialogButtonBox,
+    QSystemTrayIcon, 
+    QMenu,
+    QDialog,
+    QToolButton,
+    QComboBox,
+    QTextEdit,
+)
 
 
 class Nasikh:
@@ -71,8 +85,17 @@ class Nasikh:
         self.thread_lock = threading.Lock()
 
         # ________ GUI Application _________
-        self.app: QApplication | None = None
-        self.icon: QIcon | None = None
+        self.app: QApplication = QApplication(sys.argv)
+        self.app.setQuitOnLastWindowClosed(False)
+        self.icon: QIcon = QIcon("nasikh_icon.png")
+        self.setting: QDialog = QDialog()
+
+        # __________ GUI Fields __________
+        self.groq_api_field: QLineEdit = QLineEdit()
+        self.openrouter_api_field: QLineEdit = QLineEdit()
+        self.transcription_field: QTextEdit = QTextEdit()
+        self.arabic_field: QTextEdit = QTextEdit()
+        self.translation_field: QTextEdit = QTextEdit()
 
         # __________ Logging __________
         # Set up logging
@@ -121,7 +144,7 @@ class Nasikh:
         self.log.addHandler(file_handler)
         
         # Log the setup
-        self.log.info("Logging setup completed")
+        # self.log.info("Logging setup completed")
     
     def transcript(self, audio) -> str:
         """Transcribes audio using the configured transcription model."""
@@ -410,7 +433,7 @@ class Nasikh:
         if original_clipboard is not None:
             pyperclip.copy(original_clipboard)
     
-    def test_api_keys(self, provider: str, api_key: str) -> None:
+    def test_api_keys(self, provider: str, api_key: str) -> bool:
         """Checks if the provided API key is valid"""
         try:
             client = OpenAI(
@@ -423,15 +446,45 @@ class Nasikh:
         
         except Exception as e:
             if "401" in str(e):
-                print(f"❌ Invalid API key for {provider}. Please check your configuration.")
+                self.log.debug(f"❌ Invalid API key for {provider}. Please check your configuration.")
             return False
         
+    def get_provider_transcription_models(self, provider: str) -> List[str]:
+        client = OpenAI(
+            base_url=self.transcription_endpoints[provider],
+            api_key=self.api_keys[provider],
+        )
+        
+        models = client.models.list()
+        
+        if provider == "groq":
+            transcription_models = [
+                model.id for model in models.data if "whisper" in model.id.lower()
+            ]
+            return transcription_models
+        
+    def get_provider_chat_models(self, provider: str) -> List[str]:
+        client = OpenAI(
+            base_url=self.chat_endpoints[provider],
+            api_key=self.api_keys[provider],
+        )
+        
+        models = client.models.list()
+        chat_models = [model.id for model in models.data]
+        return chat_models
+    
+    def update_model_menu(self, model_menu: QComboBox, provider: str):
+        """Update the model combo box when provider changes"""
+        model_menu.clear()
+        models = self.get_provider_chat_models(provider)        
+        model_menu.addItems(models)
+                
     def exit_program(self) -> None:
         """Stops the listener and exits the program."""
         print("Exiting program...")
         if self.listener:
             self.listener.stop()
-        self.app.quit()
+        self.app.quit()                
 
     def run(self) -> None:
         """Main method to handle dictation"""
@@ -440,14 +493,7 @@ class Nasikh:
         # Load the configuration
         self.get_json_config()
 
-        # Initialize the GUI application
-        self.app = QApplication(sys.argv)
-
-        # This prevents the app from quitting when all windows are closed
-        self.app.setQuitOnLastWindowClosed(False)
-
-        # Create the icon
-        self.icon = QIcon("nasikh_icon.png")
+        #____________ System Tray ____________
 
         # Create the system tray icon
         tray = QSystemTrayIcon(self.icon, parent=self.app)
@@ -457,6 +503,11 @@ class Nasikh:
         # Create the menu
         menu = QMenu()
 
+        # Create a "Setting" action
+        setting_action = QAction("Setting")
+        setting_action.triggered.connect(self.setting.show)
+        menu.addAction(setting_action)
+
         # Create a "Quit" action
         quit_action = QAction("Quit")
         quit_action.triggered.connect(self.exit_program)
@@ -464,6 +515,162 @@ class Nasikh:
 
         # Set the menu for the system tray icon
         tray.setContextMenu(menu)
+
+        #____________ API Keys Tab ____________
+
+        groq_api_label = QLabel("Groq API:")
+        self.groq_api_field.setClearButtonEnabled(True)
+        self.groq_api_field.setEchoMode(QLineEdit.EchoMode.Password)
+        
+        openrouter_api_label = QLabel("OpenRouter API:")
+        self.openrouter_api_field.setClearButtonEnabled(True)
+        self.openrouter_api_field.setEchoMode(QLineEdit.EchoMode.Password)
+
+        api_keys_layout = QVBoxLayout()
+        api_keys_layout.addWidget(groq_api_label)
+        api_keys_layout.addWidget(self.groq_api_field)
+        api_keys_layout.addWidget(openrouter_api_label)
+        api_keys_layout.addWidget(self.openrouter_api_field)
+        api_keys_layout.addStretch(1)
+
+        api_keys_tab = QWidget()
+        api_keys_tab.setLayout(api_keys_layout)
+
+        #____________ Transcription Tab ____________
+
+        trascription_provider_label = QLabel("Transcription Provider:")
+        trascription_provider_menu = QComboBox()
+        trascription_provider_menu.addItems(self.transcription_endpoints.keys())
+
+        models = self.get_provider_transcription_models(trascription_provider_menu.currentText())
+        trascription_model_menu = QComboBox()
+        trascription_model_menu.addItems(models)
+
+        rich_text = "<html><head/><body>"
+        rich_text += "<center> </center>"
+        rich_text += "</body></html>"
+        self.transcription_field = QTextEdit(rich_text)
+
+        transcription_layout = QVBoxLayout()
+        transcription_layout.addWidget(trascription_provider_label)
+        transcription_layout.addWidget(trascription_provider_menu)
+        transcription_layout.addWidget(trascription_model_menu)
+        transcription_layout.addWidget(self.transcription_field)
+        transcription_layout.addStretch(1)
+
+        transcription_tab = QWidget()
+        transcription_tab.setLayout(transcription_layout)
+
+        #____________ English Tab ____________
+
+        english_provider_label = QLabel("English Chat Provider:")
+        english_provider_menu = QComboBox()
+        english_provider_menu.addItems(self.chat_endpoints.keys())
+
+        models = self.get_provider_transcription_models(trascription_provider_menu.currentText())
+        english_model_menu = QComboBox()
+        english_model_menu.addItems(models)
+        
+        english_provider_menu.currentTextChanged.connect(
+            lambda provider: self.update_model_menu(english_model_menu, provider)
+        )
+
+        rich_text = "<html><head/><body>"
+        rich_text += f"<center> </center>"
+        rich_text += "</body></html>"
+        self.english_field = QTextEdit(rich_text)
+
+        english_layout = QVBoxLayout()
+        english_layout.addWidget(english_provider_label)
+        english_layout.addWidget(english_provider_menu)
+        english_layout.addWidget(english_model_menu)
+        english_layout.addWidget(self.english_field)
+        english_layout.addStretch(1)
+
+        english_tab = QWidget()
+        english_tab.setLayout(english_layout)
+
+        #____________ Arabic Tab ____________
+
+        arabic_provider_label = QLabel("Arabic Chat Provider:")
+        arabic_provider_menu = QComboBox()
+        arabic_provider_menu.addItems(self.chat_endpoints.keys())
+
+        models = self.get_provider_chat_models(arabic_provider_menu.currentText())
+        arabic_model_menu = QComboBox()
+        arabic_model_menu.addItems(models)
+        
+        arabic_provider_menu.currentTextChanged.connect(
+            lambda provider: self.update_model_menu(arabic_model_menu, provider)
+        )
+
+        rich_text = "<html><head/><body>"
+        rich_text += f"<center> </center>"
+        rich_text += "</body></html>"
+        self.arabic_field = QTextEdit(rich_text)
+
+        arabic_layout = QVBoxLayout()
+        arabic_layout.addWidget(arabic_provider_label)
+        arabic_layout.addWidget(arabic_provider_menu)
+        arabic_layout.addWidget(arabic_model_menu)
+        arabic_layout.addWidget(self.arabic_field)
+        arabic_layout.addStretch(1)
+
+        arabic_tab = QWidget()
+        arabic_tab.setLayout(arabic_layout)
+
+        #____________ Trnaslation Tab ____________
+
+        translation_provider_label = QLabel("Trnaslation Chat Provider:")
+        translation_provider_menu = QComboBox()
+        translation_provider_menu.addItems(self.chat_endpoints.keys())
+
+        models = self.get_provider_chat_models(translation_provider_menu.currentText())
+        translation_model_menu = QComboBox()
+        translation_model_menu.addItems(models)
+        
+        translation_provider_menu.currentTextChanged.connect(
+            lambda provider: self.update_model_menu(translation_model_menu, provider)
+        )
+
+        rich_text = "<html><head/><body>"
+        rich_text += f"<center> </center>"
+        rich_text += "</body></html>"
+        self.translation_field = QTextEdit(rich_text)
+
+        translation_layout = QVBoxLayout()
+        translation_layout.addWidget(translation_provider_label)
+        translation_layout.addWidget(translation_provider_menu)
+        translation_layout.addWidget(translation_model_menu)
+        translation_layout.addWidget(self.translation_field)
+        translation_layout.addStretch(1)
+
+        translation_tab = QWidget()
+        translation_tab.setLayout(translation_layout)
+
+        #____________ Setting UI ____________
+
+        tab_widget = QTabWidget()
+        tab_widget.addTab(api_keys_tab, "API Keys")
+        tab_widget.addTab(transcription_tab, "Transcription")
+        tab_widget.addTab(english_tab, "English")
+        tab_widget.addTab(arabic_tab, "Arabic")
+        tab_widget.addTab(translation_tab, "Trnaslation")
+
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
+        )
+
+        button_box.accepted.connect(self.setting.accept)
+        button_box.rejected.connect(self.setting.reject)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(tab_widget)
+        main_layout.addWidget(button_box)
+        self.setting.setLayout(main_layout)
+        self.setting.setWindowTitle("Nasikh Settings")
+
+        #____________ Keyboard Listener ____________
 
         # Hotkey callbacks now call the central toggle function
         if self.system == "darwin":

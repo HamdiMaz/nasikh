@@ -27,7 +27,6 @@ from PySide6.QtWidgets import (
     QSystemTrayIcon, 
     QMenu,
     QDialog,
-    QToolButton,
     QComboBox,
     QTextEdit,
 )
@@ -91,11 +90,22 @@ class Nasikh:
         self.setting: QDialog = QDialog()
 
         # __________ GUI Fields __________
+        # API
         self.groq_api_field: QLineEdit = QLineEdit()
         self.openrouter_api_field: QLineEdit = QLineEdit()
-        self.transcription_field: QTextEdit = QTextEdit()
-        self.arabic_field: QTextEdit = QTextEdit()
-        self.translation_field: QTextEdit = QTextEdit()
+        # Prompt
+        self.english_prompt_field: QTextEdit = QTextEdit()
+        self.arabic_prompt_field: QTextEdit = QTextEdit()
+        self.translation_prompt_field: QTextEdit = QTextEdit()
+        # Menus
+        self.transcription_provider_menu: QComboBox = None
+        self.transcription_model_menu: QComboBox = None
+        self.english_provider_menu: QComboBox = None
+        self.english_model_menu: QComboBox = None
+        self.arabic_provider_menu: QComboBox = None
+        self.arabic_model_menu: QComboBox = None
+        self.translation_provider_menu: QComboBox = None
+        self.translation_model_menu: QComboBox = None
 
         # __________ Logging __________
         # Set up logging
@@ -224,7 +234,7 @@ class Nasikh:
     def get_json_config(self) -> Dict:
         """Loads configuration from a JSON file."""
         try:
-            with open(".config.json", "r", encoding="utf-8") as file:
+            with open("config.json", "r", encoding="utf-8") as file:
                 config = json.load(file)
                 
             for key, value in config.items():
@@ -250,7 +260,7 @@ class Nasikh:
             "arabic_cleanup_model": self.arabic_cleanup_model,
             "arabic_prompt": self.arabic_prompt
         }
-        with open(".config.json", "w", encoding="utf-8") as file:
+        with open("config.json", "w", encoding="utf-8") as file:
             json.dump(config, file, indent=4)
 
     def get_transcription_config(self) -> Dict:
@@ -478,7 +488,29 @@ class Nasikh:
         model_menu.clear()
         models = self.get_provider_chat_models(provider)        
         model_menu.addItems(models)
-                
+
+    def save_setting_menu(self):
+        self.api_keys["groq"] = self.groq_api_field.text().strip() or None
+        self.api_keys["openrouter"] = self.openrouter_api_field.text().strip() or None
+
+        self.transcription_provider = self.transcription_provider_menu.currentText()
+        self.transcription_model = self.trascription_model_menu.currentText()
+
+        self.english_cleanup_provider = self.english_provider_menu.currentText()
+        self.english_cleanup_model = self.english_model_menu.currentText()
+        self.english_prompt = self.english_prompt_field.toPlainText()
+
+        self.arabic_cleanup_provider = self.arabic_provider_menu.currentText()
+        self.arabic_cleanup_model = self.arabic_model_menu.currentText()
+        self.arabic_prompt = self.arabic_prompt_field.toPlainText()
+
+        self.translation_provider = self.translation_provider_menu.currentText()
+        self.translation_model = self.translation_model_menu.currentText()
+        self.translation_prompt = self.translation_prompt_field.toPlainText()
+
+        self.save_json_config()
+        self.setting.accept()
+
     def exit_program(self) -> None:
         """Stops the listener and exits the program."""
         print("Exiting program...")
@@ -521,10 +553,14 @@ class Nasikh:
         groq_api_label = QLabel("Groq API:")
         self.groq_api_field.setClearButtonEnabled(True)
         self.groq_api_field.setEchoMode(QLineEdit.EchoMode.Password)
-        
+        if self.api_keys.get("groq"):
+            self.groq_api_field.setText(self.api_keys["groq"])
+
         openrouter_api_label = QLabel("OpenRouter API:")
         self.openrouter_api_field.setClearButtonEnabled(True)
         self.openrouter_api_field.setEchoMode(QLineEdit.EchoMode.Password)
+        if self.api_keys.get("openrouter"):
+            self.openrouter_api_field.setText(self.api_keys["openrouter"])
 
         api_keys_layout = QVBoxLayout()
         api_keys_layout.addWidget(groq_api_label)
@@ -538,24 +574,24 @@ class Nasikh:
 
         #____________ Transcription Tab ____________
 
-        trascription_provider_label = QLabel("Transcription Provider:")
-        trascription_provider_menu = QComboBox()
-        trascription_provider_menu.addItems(self.transcription_endpoints.keys())
+        transcription_provider_label = QLabel("Transcription Provider:")
+        self.transcription_provider_menu = QComboBox()
+        self.transcription_provider_menu.addItems(self.transcription_endpoints.keys())
+        if self.transcription_provider is not None:
+            self.transcription_provider_menu.setCurrentText(self.transcription_provider)
 
-        models = self.get_provider_transcription_models(trascription_provider_menu.currentText())
-        trascription_model_menu = QComboBox()
-        trascription_model_menu.addItems(models)
-
-        rich_text = "<html><head/><body>"
-        rich_text += "<center> </center>"
-        rich_text += "</body></html>"
-        self.transcription_field = QTextEdit(rich_text)
+        transcription_model_label = QLabel("Transcription Model:")
+        models = self.get_provider_transcription_models(self.transcription_provider_menu.currentText())
+        self.trascription_model_menu = QComboBox()
+        self.trascription_model_menu.addItems(models)
+        if self.transcription_model is not None:
+            self.trascription_model_menu.setCurrentText(self.transcription_model)
 
         transcription_layout = QVBoxLayout()
-        transcription_layout.addWidget(trascription_provider_label)
-        transcription_layout.addWidget(trascription_provider_menu)
-        transcription_layout.addWidget(trascription_model_menu)
-        transcription_layout.addWidget(self.transcription_field)
+        transcription_layout.addWidget(transcription_provider_label)
+        transcription_layout.addWidget(self.transcription_provider_menu)
+        transcription_layout.addWidget(transcription_model_label)
+        transcription_layout.addWidget(self.trascription_model_menu)
         transcription_layout.addStretch(1)
 
         transcription_tab = QWidget()
@@ -564,27 +600,32 @@ class Nasikh:
         #____________ English Tab ____________
 
         english_provider_label = QLabel("English Chat Provider:")
-        english_provider_menu = QComboBox()
-        english_provider_menu.addItems(self.chat_endpoints.keys())
+        self.english_provider_menu = QComboBox()
+        self.english_provider_menu.addItems(self.chat_endpoints.keys())
+        if self.english_cleanup_provider is not None:
+            self.english_provider_menu.setCurrentText(self.english_cleanup_provider)
 
-        models = self.get_provider_transcription_models(trascription_provider_menu.currentText())
-        english_model_menu = QComboBox()
-        english_model_menu.addItems(models)
+        english_model_label = QLabel("English Chat Model:")
+        models = self.get_provider_chat_models(self.english_provider_menu.currentText())
+        self.english_model_menu = QComboBox()
+        self.english_model_menu.addItems(models)
+        if self.english_cleanup_model is not None:
+            self.english_model_menu.setCurrentText(self.english_cleanup_model)
         
-        english_provider_menu.currentTextChanged.connect(
-            lambda provider: self.update_model_menu(english_model_menu, provider)
+        self.english_provider_menu.currentTextChanged.connect(
+            lambda provider: self.update_model_menu(self.english_model_menu, provider)
         )
 
-        rich_text = "<html><head/><body>"
-        rich_text += f"<center> </center>"
-        rich_text += "</body></html>"
-        self.english_field = QTextEdit(rich_text)
+        self.english_prompt_field = QTextEdit()
+        if self.english_prompt is not None:
+            self.english_prompt_field.setText(self.english_prompt)
 
         english_layout = QVBoxLayout()
         english_layout.addWidget(english_provider_label)
-        english_layout.addWidget(english_provider_menu)
-        english_layout.addWidget(english_model_menu)
-        english_layout.addWidget(self.english_field)
+        english_layout.addWidget(self.english_provider_menu)
+        english_layout.addWidget(english_model_label)
+        english_layout.addWidget(self.english_model_menu)
+        english_layout.addWidget(self.english_prompt_field)
         english_layout.addStretch(1)
 
         english_tab = QWidget()
@@ -593,27 +634,32 @@ class Nasikh:
         #____________ Arabic Tab ____________
 
         arabic_provider_label = QLabel("Arabic Chat Provider:")
-        arabic_provider_menu = QComboBox()
-        arabic_provider_menu.addItems(self.chat_endpoints.keys())
+        self.arabic_provider_menu = QComboBox()
+        self.arabic_provider_menu.addItems(self.chat_endpoints.keys())
+        if self.arabic_cleanup_provider is not None:
+            self.arabic_provider_menu.setCurrentText(self.arabic_cleanup_provider)
 
-        models = self.get_provider_chat_models(arabic_provider_menu.currentText())
-        arabic_model_menu = QComboBox()
-        arabic_model_menu.addItems(models)
+        arabic_model_label = QLabel("Arabic Chat Model:")
+        models = self.get_provider_chat_models(self.arabic_provider_menu.currentText())
+        self.arabic_model_menu = QComboBox()
+        self.arabic_model_menu.addItems(models)
+        if self.arabic_cleanup_model is not None:
+            self.arabic_model_menu.setCurrentText(self.arabic_cleanup_model)
         
-        arabic_provider_menu.currentTextChanged.connect(
-            lambda provider: self.update_model_menu(arabic_model_menu, provider)
+        self.arabic_provider_menu.currentTextChanged.connect(
+            lambda provider: self.update_model_menu(self.arabic_model_menu, provider)
         )
 
-        rich_text = "<html><head/><body>"
-        rich_text += f"<center> </center>"
-        rich_text += "</body></html>"
-        self.arabic_field = QTextEdit(rich_text)
+        self.arabic_prompt_field = QTextEdit()
+        if self.arabic_prompt is not None:
+            self.arabic_prompt_field.setText(self.arabic_prompt)
 
         arabic_layout = QVBoxLayout()
         arabic_layout.addWidget(arabic_provider_label)
-        arabic_layout.addWidget(arabic_provider_menu)
-        arabic_layout.addWidget(arabic_model_menu)
-        arabic_layout.addWidget(self.arabic_field)
+        arabic_layout.addWidget(self.arabic_provider_menu)
+        arabic_layout.addWidget(arabic_model_label)
+        arabic_layout.addWidget(self.arabic_model_menu)
+        arabic_layout.addWidget(self.arabic_prompt_field)
         arabic_layout.addStretch(1)
 
         arabic_tab = QWidget()
@@ -622,27 +668,32 @@ class Nasikh:
         #____________ Trnaslation Tab ____________
 
         translation_provider_label = QLabel("Trnaslation Chat Provider:")
-        translation_provider_menu = QComboBox()
-        translation_provider_menu.addItems(self.chat_endpoints.keys())
+        self.translation_provider_menu = QComboBox()
+        self.translation_provider_menu.addItems(self.chat_endpoints.keys())
+        if self.translation_provider is not None:
+            self.translation_provider_menu.setCurrentText(self.translation_provider)
 
-        models = self.get_provider_chat_models(translation_provider_menu.currentText())
-        translation_model_menu = QComboBox()
-        translation_model_menu.addItems(models)
+        translation_model_label = QLabel("Trnaslation Chat model:")
+        models = self.get_provider_chat_models(self.translation_provider_menu.currentText())
+        self.translation_model_menu = QComboBox()
+        self.translation_model_menu.addItems(models)
+        if self.translation_model is not None:
+            self.translation_model_menu.setCurrentText(self.translation_model)
         
-        translation_provider_menu.currentTextChanged.connect(
-            lambda provider: self.update_model_menu(translation_model_menu, provider)
+        self.translation_provider_menu.currentTextChanged.connect(
+            lambda provider: self.update_model_menu(self.translation_model_menu, provider)
         )
 
-        rich_text = "<html><head/><body>"
-        rich_text += f"<center> </center>"
-        rich_text += "</body></html>"
-        self.translation_field = QTextEdit(rich_text)
+        self.translation_prompt_field = QTextEdit()
+        if self.translation_prompt is not None:
+            self.translation_prompt_field.setText(self.translation_prompt)
 
         translation_layout = QVBoxLayout()
         translation_layout.addWidget(translation_provider_label)
-        translation_layout.addWidget(translation_provider_menu)
-        translation_layout.addWidget(translation_model_menu)
-        translation_layout.addWidget(self.translation_field)
+        translation_layout.addWidget(self.translation_provider_menu)
+        translation_layout.addWidget(translation_model_label)
+        translation_layout.addWidget(self.translation_model_menu)
+        translation_layout.addWidget(self.translation_prompt_field)
         translation_layout.addStretch(1)
 
         translation_tab = QWidget()
@@ -661,7 +712,7 @@ class Nasikh:
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
         )
 
-        button_box.accepted.connect(self.setting.accept)
+        button_box.accepted.connect(self.save_setting_menu)
         button_box.rejected.connect(self.setting.reject)
 
         main_layout = QVBoxLayout()

@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QComboBox,
     QTextEdit,
+    QStyleFactory,
 )
 
 
@@ -86,6 +87,7 @@ class Nasikh:
         # ________ GUI Application _________
         self.app: QApplication = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
+        self.app.setStyle(QStyleFactory.create("Fusion"))
         self.icon: QIcon = QIcon("nasikh_icon.png")
         self.setting: QDialog = QDialog()
 
@@ -720,6 +722,7 @@ class Nasikh:
         main_layout.addWidget(button_box)
         self.setting.setLayout(main_layout)
         self.setting.setWindowTitle("Nasikh Settings")
+        self.setting.setWindowIcon(self.icon)
 
         #____________ Keyboard Listener ____________
 

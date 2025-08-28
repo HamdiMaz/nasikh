@@ -40,10 +40,10 @@ class Nasikh:
         self.transcription_provider: str | None = None
         self.transcription_model: str | None = None
         # Chat Models
-        self.arabic_cleanup_provider: str | None = None
-        self.arabic_cleanup_model: str | None = None
-        self.english_cleanup_provider: str | None = None
-        self.english_cleanup_model: str | None = None
+        self.arabic_provider: str | None = None
+        self.arabic_model: str | None = None
+        self.english_provider: str | None = None
+        self.english_model: str | None = None
         self.translation_provider: str | None = None
         self.translation_model: str | None = None
         # Prompts
@@ -198,7 +198,7 @@ class Nasikh:
         config = self.get_chat_config()
 
         # Log provider and model
-        self.log.info(f"Cleanup provider: {config['provvider']}")
+        self.log.info(f"Cleanup provider: {config['provider']}")
         self.log.info(f"Cleanup model: {config['model_name']}")
 
         client = OpenAI(
@@ -220,7 +220,7 @@ class Nasikh:
             "top_p": 1,
         }
         # Special handling for Groq API
-        if config["provvider"] == "groq":
+        if config["provider"] == "groq":
             parameters["reasoning_effort"] = "none"
         
         # Log the start of cleanup
@@ -252,14 +252,14 @@ class Nasikh:
             "api_keys": self.api_keys,
             "transcription_provider": self.transcription_provider,
             "transcription_model": self.transcription_model,
-            "english_cleanup_provider": self.english_cleanup_provider,
-            "english_cleanup_model": self.english_cleanup_model,
+            "english_provider": self.english_provider,
+            "english_model": self.english_model,
             "english_prompt": self.english_prompt,
             "translation_provider": self.translation_provider,
             "translation_model": self.translation_model,
             "translation_prompt": self.translation_prompt,
-            "arabic_cleanup_provider": self.arabic_cleanup_provider,
-            "arabic_cleanup_model": self.arabic_cleanup_model,
+            "arabic_provider": self.arabic_provider,
+            "arabic_model": self.arabic_model,
             "arabic_prompt": self.arabic_prompt
         }
         with open("config.json", "w", encoding="utf-8") as file:
@@ -274,8 +274,8 @@ class Nasikh:
             provider = self.transcription_provider
             model_name = self.transcription_model
         elif self.mode == "english":
-            provider = self.english_cleanup_provider
-            model_name = self.english_cleanup_model
+            provider = self.english_provider
+            model_name = self.english_model
         elif self.mode == "translation":
             provider = self.translation_provider
             model_name = self.translation_model
@@ -293,14 +293,14 @@ class Nasikh:
         Returns them in a single configuration dictionary.
         """
         if self.mode == "arabic":
-            provider = self.arabic_cleanup_provider
+            provider = self.arabic_provider
             api_key = self.api_keys[provider]
-            model_name = self.arabic_cleanup_model
+            model_name = self.arabic_model
             prompt = self.arabic_prompt
         elif self.mode == "english":
-            provider = self.english_cleanup_provider
+            provider = self.english_provider
             api_key = self.api_keys[provider]
-            model_name = self.english_cleanup_model
+            model_name = self.english_model
             prompt = self.english_prompt
         elif self.mode == "translation":
             provider = self.translation_provider
@@ -309,7 +309,7 @@ class Nasikh:
             prompt = self.translation_prompt
 
         return {
-            "provvider": provider,
+            "provider": provider,
             "api_endpoint": self.chat_endpoints[provider],
             "api_key": api_key,
             "model_name": model_name,
@@ -496,14 +496,14 @@ class Nasikh:
         self.api_keys["openrouter"] = self.openrouter_api_field.text().strip() or None
 
         self.transcription_provider = self.transcription_provider_menu.currentText()
-        self.transcription_model = self.trascription_model_menu.currentText()
+        self.transcription_model = self.transcription_model_menu.currentText()
 
-        self.english_cleanup_provider = self.english_provider_menu.currentText()
-        self.english_cleanup_model = self.english_model_menu.currentText()
+        self.english_provider = self.english_provider_menu.currentText()
+        self.english_model = self.english_model_menu.currentText()
         self.english_prompt = self.english_prompt_field.toPlainText()
 
-        self.arabic_cleanup_provider = self.arabic_provider_menu.currentText()
-        self.arabic_cleanup_model = self.arabic_model_menu.currentText()
+        self.arabic_provider = self.arabic_provider_menu.currentText()
+        self.arabic_model = self.arabic_model_menu.currentText()
         self.arabic_prompt = self.arabic_prompt_field.toPlainText()
 
         self.translation_provider = self.translation_provider_menu.currentText()
@@ -584,16 +584,16 @@ class Nasikh:
 
         transcription_model_label = QLabel("Transcription Model:")
         models = self.get_provider_transcription_models(self.transcription_provider_menu.currentText())
-        self.trascription_model_menu = QComboBox()
-        self.trascription_model_menu.addItems(models)
+        self.transcription_model_menu = QComboBox()
+        self.transcription_model_menu.addItems(models)
         if self.transcription_model is not None:
-            self.trascription_model_menu.setCurrentText(self.transcription_model)
+            self.transcription_model_menu.setCurrentText(self.transcription_model)
 
         transcription_layout = QVBoxLayout()
         transcription_layout.addWidget(transcription_provider_label)
         transcription_layout.addWidget(self.transcription_provider_menu)
         transcription_layout.addWidget(transcription_model_label)
-        transcription_layout.addWidget(self.trascription_model_menu)
+        transcription_layout.addWidget(self.transcription_model_menu)
         transcription_layout.addStretch(1)
 
         transcription_tab = QWidget()
@@ -604,15 +604,15 @@ class Nasikh:
         english_provider_label = QLabel("English Chat Provider:")
         self.english_provider_menu = QComboBox()
         self.english_provider_menu.addItems(self.chat_endpoints.keys())
-        if self.english_cleanup_provider is not None:
-            self.english_provider_menu.setCurrentText(self.english_cleanup_provider)
+        if self.english_provider is not None:
+            self.english_provider_menu.setCurrentText(self.english_provider)
 
         english_model_label = QLabel("English Chat Model:")
         models = self.get_provider_chat_models(self.english_provider_menu.currentText())
         self.english_model_menu = QComboBox()
         self.english_model_menu.addItems(models)
-        if self.english_cleanup_model is not None:
-            self.english_model_menu.setCurrentText(self.english_cleanup_model)
+        if self.english_model is not None:
+            self.english_model_menu.setCurrentText(self.english_model)
         
         self.english_provider_menu.currentTextChanged.connect(
             lambda provider: self.update_model_menu(self.english_model_menu, provider)
@@ -638,15 +638,15 @@ class Nasikh:
         arabic_provider_label = QLabel("Arabic Chat Provider:")
         self.arabic_provider_menu = QComboBox()
         self.arabic_provider_menu.addItems(self.chat_endpoints.keys())
-        if self.arabic_cleanup_provider is not None:
-            self.arabic_provider_menu.setCurrentText(self.arabic_cleanup_provider)
+        if self.arabic_provider is not None:
+            self.arabic_provider_menu.setCurrentText(self.arabic_provider)
 
         arabic_model_label = QLabel("Arabic Chat Model:")
         models = self.get_provider_chat_models(self.arabic_provider_menu.currentText())
         self.arabic_model_menu = QComboBox()
         self.arabic_model_menu.addItems(models)
-        if self.arabic_cleanup_model is not None:
-            self.arabic_model_menu.setCurrentText(self.arabic_cleanup_model)
+        if self.arabic_model is not None:
+            self.arabic_model_menu.setCurrentText(self.arabic_model)
         
         self.arabic_provider_menu.currentTextChanged.connect(
             lambda provider: self.update_model_menu(self.arabic_model_menu, provider)
@@ -667,15 +667,15 @@ class Nasikh:
         arabic_tab = QWidget()
         arabic_tab.setLayout(arabic_layout)
 
-        #____________ Trnaslation Tab ____________
+        #____________ Translation Tab ____________
 
-        translation_provider_label = QLabel("Trnaslation Chat Provider:")
+        translation_provider_label = QLabel("Translation Chat Provider:")
         self.translation_provider_menu = QComboBox()
         self.translation_provider_menu.addItems(self.chat_endpoints.keys())
         if self.translation_provider is not None:
             self.translation_provider_menu.setCurrentText(self.translation_provider)
 
-        translation_model_label = QLabel("Trnaslation Chat model:")
+        translation_model_label = QLabel("Translation Chat model:")
         models = self.get_provider_chat_models(self.translation_provider_menu.currentText())
         self.translation_model_menu = QComboBox()
         self.translation_model_menu.addItems(models)
@@ -708,7 +708,7 @@ class Nasikh:
         tab_widget.addTab(transcription_tab, "Transcription")
         tab_widget.addTab(english_tab, "English")
         tab_widget.addTab(arabic_tab, "Arabic")
-        tab_widget.addTab(translation_tab, "Trnaslation")
+        tab_widget.addTab(translation_tab, "Translation")
 
         button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel

@@ -111,7 +111,7 @@ class Nasikh:
 
         # __________ Logging __________
         # Set up logging
-        self.log_level: str = "WARNING"
+        self.log_level: str = "INFO"
         self.setup_logging()
         
         # Log initialization
@@ -729,9 +729,9 @@ class Nasikh:
         # Hotkey callbacks now call the central toggle function
         if self.system == "darwin":
             hotkeys = {
-                '<alt>+q': lambda: self.toggle_dictation("english"),
-                '<alt>+w': lambda: self.toggle_dictation("translation"),
-                '<alt>+a': lambda: self.toggle_dictation("arabic"),
+                '<ctrl>+q': lambda: self.toggle_dictation("english"),
+                '<ctrl>+w': lambda: self.toggle_dictation("translation"),
+                '<ctrl>+a': lambda: self.toggle_dictation("arabic"),
                 '<esc>': self.cancel_recording,
             }
 

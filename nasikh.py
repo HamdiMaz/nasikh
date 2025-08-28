@@ -87,7 +87,7 @@ class Nasikh:
         # ________ GUI Application _________
         self.app: QApplication = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
-        self.app.setStyle(QStyleFactory.create("Fusion"))
+        self.app.setStyle(QStyleFactory.create("macOS" if self.system == "darwin" else "Fusion"))
         self.icon: QIcon = QIcon("nasikh_icon.png")
         self.setting: QDialog = QDialog()
 

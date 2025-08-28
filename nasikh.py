@@ -111,7 +111,7 @@ class Nasikh:
 
         # __________ Logging __________
         # Set up logging
-        self.log_level: str = "DEBUG"
+        self.log_level: str = "WARNING"
         self.setup_logging()
         
         # Log initialization

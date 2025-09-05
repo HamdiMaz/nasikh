@@ -88,7 +88,7 @@ class Nasikh:
         self.app: QApplication = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
         self.app.setStyle(QStyleFactory.create("macOS" if self.system == "darwin" else "Fusion"))
-        self.icon: QIcon = QIcon("nasikh_icon.png")
+        self.icon: QIcon = QIcon("nasikh_icon.ico")
         self.setting: QDialog = QDialog()
 
         # __________ GUI Fields __________

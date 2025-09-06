@@ -150,7 +150,7 @@ class Nasikh:
         self.app: QApplication = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
         self.app.setStyle(QStyleFactory.create("macOS" if self.system == "darwin" else "Fusion"))
-        self.icon: QIcon = QIcon("nasikh_icon.ico")
+        self.icon: QIcon = QIcon("C:\\Users\\hamdy\\Documents\\nasikh\\nasikh_icon.ico")
         self.setting: QDialog = QDialog()
         self.recording_window: RecordingWindow = RecordingWindow()
 
@@ -452,12 +452,14 @@ class Nasikh:
         
         return wav_buffer
     
+    @Slot()
     def cancel_recording(self) -> None:
         """Cancels the current recording without processing the audio."""
         with self.thread_lock:
             if self.recording:
                 self.stop_recording()
                 self.recording = False
+                self.recording_window.hide()
 
     @Slot()
     def toggle_dictation(self,  mode: str) -> None:
@@ -537,7 +539,7 @@ class Nasikh:
                 api_key=api_key,
             )
             client.models.list()
-            print(f"✅ API key for {provider} is valid.")
+            # print(f"✅ API key for {provider} is valid.")
             return True
         
         except Exception as e:
@@ -599,14 +601,14 @@ class Nasikh:
 
     def exit_program(self) -> None:
         """Stops the listener and exits the program."""
-        print("Exiting program...")
+        # print("Exiting program...")
         if self.listener:
             self.listener.stop()
         self.app.quit()                
 
     def run(self) -> None:
         """Main method to handle dictation"""
-        print("✅ Dictation App ready!")
+        # print("✅ Dictation App ready!")
 
         # Load the configuration
         self.get_json_config()

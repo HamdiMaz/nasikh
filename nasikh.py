@@ -15,6 +15,7 @@ import sounddevice as sd
 from openai import OpenAI
 from typing import List, Dict
 from pynput.keyboard import Key, Controller, GlobalHotKeys
+from PySide6.QtCore import Qt, QObject, QThread, Signal, Slot
 from PySide6.QtGui import QIcon, QAction
 from PySide6.QtWidgets import (
     QWidget,
@@ -31,6 +32,46 @@ from PySide6.QtWidgets import (
     QTextEdit,
     QStyleFactory,
 )
+
+
+class GlobalKeyListener(QObject):
+    # Define the signal that will be emitted when the hotkey is pressed
+    english_hotkey_pressed = Signal()
+    translation_hotkey_pressed = Signal()
+    arabic_hotkey_pressed = Signal()
+    cancel_hotkey_pressed = Signal()
+
+    def __init__(self):
+        super().__init__()
+        self._running = True
+        self.system: str = platform.system().lower()
+
+    @Slot()
+    def run(self):
+        """This method will be executed in the worker thread."""
+        if self.system == "darwin":
+            hotkeys = {
+                '<ctrl>+q': lambda: self.english_hotkey_pressed.emit(),
+                '<ctrl>+w': lambda: self.translation_hotkey_pressed.emit(),
+                '<ctrl>+a': lambda: self.arabic_hotkey_pressed.emit(),
+                '<esc>': self.cancel_hotkey_pressed.emit(),
+            }
+
+            # Start the listener in the background. DO NOT .join() it.
+            self.listener = GlobalHotKeys(hotkeys)
+            self.listener.start()
+
+        elif self.system in ["windows", "linux"]:
+            keyboard.add_hotkey('alt+q', callback=self.english_hotkey_pressed.emit)
+            keyboard.add_hotkey('alt+w', callback=self.translation_hotkey_pressed.emit)
+            keyboard.add_hotkey('alt+a', callback=self.arabic_hotkey_pressed.emit)
+            keyboard.add_hotkey('esc', callback=self.cancel_hotkey_pressed.emit)
+
+    def stop(self):
+        self._running = False
+        keyboard.remove_all_hotkeys()
+        if self.listener:
+            self.listener.stop()
 
 
 class Nasikh:
@@ -90,6 +131,24 @@ class Nasikh:
         self.app.setStyle(QStyleFactory.create("macOS" if self.system == "darwin" else "Fusion"))
         self.icon: QIcon = QIcon("nasikh_icon.ico")
         self.setting: QDialog = QDialog()
+
+        # __________ Threading __________
+        self.thread = QThread()
+        self.worker = GlobalKeyListener()
+        self.worker.moveToThread(self.thread)
+
+        self.thread.started.connect(self.worker.run)
+
+        self.worker.english_hotkey_pressed.connect(lambda: self.toggle_dictation("english"))
+        self.worker.arabic_hotkey_pressed.connect(lambda: self.toggle_dictation("arabic"))
+        self.worker.translation_hotkey_pressed.connect(lambda: self.toggle_dictation("translation"))
+        self.worker.cancel_hotkey_pressed.connect(self.cancel_recording)
+
+        self.app.aboutToQuit.connect(self.thread.quit)
+        self.app.aboutToQuit.connect(self.worker.stop)
+        self.app.aboutToQuit.connect(self.thread.wait)
+
+        self.thread.start()
 
         # __________ GUI Fields __________
         # API
@@ -342,7 +401,7 @@ class Nasikh:
         
         if not self.audio_chunks:
             return None
-
+        
         audio_data = np.concatenate(self.audio_chunks)
         wav_buffer = io.BytesIO()
         
@@ -378,6 +437,7 @@ class Nasikh:
                 self.stop_recording()
                 self.recording = False
 
+    @Slot()
     def toggle_dictation(self,  mode: str) -> None:
         """Starts or stops the dictation process."""
         with self.thread_lock:
@@ -724,26 +784,7 @@ class Nasikh:
         self.setting.setWindowTitle("Nasikh Settings")
         self.setting.setWindowIcon(self.icon)
 
-        #____________ Keyboard Listener ____________
 
-        # Hotkey callbacks now call the central toggle function
-        if self.system == "darwin":
-            hotkeys = {
-                '<ctrl>+q': lambda: self.toggle_dictation("english"),
-                '<ctrl>+w': lambda: self.toggle_dictation("translation"),
-                '<ctrl>+a': lambda: self.toggle_dictation("arabic"),
-                '<esc>': self.cancel_recording,
-            }
-
-            # Start the listener in the background. DO NOT .join() it.
-            self.listener = GlobalHotKeys(hotkeys)
-            self.listener.start()
-
-        elif self.system in ["windows", "linux"]:
-            keyboard.add_hotkey('alt+q', callback=self.toggle_dictation, args=("english",))
-            keyboard.add_hotkey('alt+w', callback=self.toggle_dictation, args=("translation",))
-            keyboard.add_hotkey('alt+a', callback=self.toggle_dictation, args=("arabic",))
-            keyboard.add_hotkey('esc', callback=self.cancel_recording)
 
         # run the GUI application
         sys.exit(self.app.exec())

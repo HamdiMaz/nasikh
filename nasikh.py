@@ -74,6 +74,27 @@ class GlobalKeyListener(QObject):
             self.listener.stop()
 
 
+class RecordingWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.layout = QVBoxLayout()
+        self.label = QLabel("Recording...")
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setStyleSheet("font-size: 30px; color: red; background-color: rgba(255, 255, 255, 150); border-radius: 10px; padding: 20px;")
+        self.layout.addWidget(self.label)
+        self.setLayout(self.layout)
+        self.setFixedSize(300, 100)
+        self.center_on_screen()
+
+    def center_on_screen(self):
+        screen_geometry = QApplication.primaryScreen().geometry()
+        x = (screen_geometry.width() - self.width()) // 2
+        y = (screen_geometry.height() - self.height()) // 2
+        self.move(x, y)
+
+
 class Nasikh:
     def __init__(self):
         # ________ Provider, Models And Prompts ________
@@ -131,6 +152,7 @@ class Nasikh:
         self.app.setStyle(QStyleFactory.create("macOS" if self.system == "darwin" else "Fusion"))
         self.icon: QIcon = QIcon("nasikh_icon.ico")
         self.setting: QDialog = QDialog()
+        self.recording_window: RecordingWindow = RecordingWindow()
 
         # __________ Threading __________
         self.thread = QThread()
@@ -445,6 +467,7 @@ class Nasikh:
                 # If recording, stop it
                 audio_buffer = self.stop_recording()
                 self.recording = False
+                self.recording_window.hide()
                 
                 if audio_buffer is None:
                     # Log the cancellation
@@ -474,6 +497,7 @@ class Nasikh:
                 self.recording = True
                 self.mode = mode
                 self.start_recording()
+                self.recording_window.show()
 
     def process_and_paste(self, audio_buffer: io.BytesIO) -> None:
         """Transcribes audio, cleans it, and pastes the result."""

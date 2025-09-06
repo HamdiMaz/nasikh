@@ -7,7 +7,7 @@ from __future__ import annotations
 import sys
 
 from PySide6.QtWidgets import QApplication
-from example import WidgetGallery
+from examples.example import WidgetGallery
 
 
 if __name__ == '__main__':

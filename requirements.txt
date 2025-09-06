@@ -6,3 +6,4 @@ pyperclip
 pynput
 openai
 PySide6
+pyinstaller

@@ -67,19 +67,19 @@ class Nasikh:
     def __init__(self):
         # ________ Provider, Models And Prompts ________
         # Transcription Model
-        self.transcription_provider: str | None = None
-        self.transcription_model: str | None = None
+        self.transcription_provider: str = None
+        self.transcription_model: str = None
         # Chat Models
-        self.arabic_provider: str | None = None
-        self.arabic_model: str | None = None
-        self.english_provider: str | None = None
-        self.english_model: str | None = None
-        self.translation_provider: str | None = None
-        self.translation_model: str | None = None
+        self.arabic_provider: str = None
+        self.arabic_model: str = None
+        self.english_provider: str = None
+        self.english_model: str = None
+        self.translation_provider: str = None
+        self.translation_model: str = None
         # Prompts
-        self.arabic_prompt: str | None = None
-        self.english_prompt: str | None = None
-        self.translation_prompt: str | None = None
+        self.arabic_prompt: str = None
+        self.english_prompt: str = None
+        self.translation_prompt: str = None
 
         # __________ API Keys __________
         self.api_keys: Dict[str, str | None] = {
@@ -111,7 +111,6 @@ class Nasikh:
         # ____________ System ____________
         self.system: str = platform.system().lower()
         self.controller = Controller()
-        self.listener: GlobalHotKeys | None = None
         self.thread_lock = threading.Lock()
 
         # ________ GUI Application _________
@@ -155,15 +154,15 @@ class Nasikh:
         self.log.info("Nasikh initialized")
 
         # ___________ Performance __________
-        self.dictation_start: float | None = None
-        self.dictation_end: float | None = None
-        self.dictation_time: float | None = None
-        self.transcription_start: float | None = None
-        self.transcription_end: float | None = None
-        self.cleanup_start: float | None = None
-        self.cleanup_end: float | None = None
-        self.audio_processing_start: float | None = None
-        self.audio_processing_end: float | None = None
+        self.dictation_start: float = None
+        self.dictation_end: float = None
+        self.dictation_time: float = None
+        self.transcription_start: float = None
+        self.transcription_end: float = None
+        self.cleanup_start: float = None
+        self.cleanup_end: float = None
+        self.audio_processing_start: float = None
+        self.audio_processing_end: float = None
 
     def setup_logging(self):
         """Configure logging for the dictation app."""
@@ -494,7 +493,6 @@ class Nasikh:
                 api_key=api_key,
             )
             client.models.list()
-            # print(f"✅ API key for {provider} is valid.")
             return True
         
         except Exception as e:
@@ -555,10 +553,7 @@ class Nasikh:
         self.setting.accept()
 
     def exit_program(self) -> None:
-        """Stops the listener and exits the program."""
-        # print("Exiting program...")
-        if self.listener:
-            self.listener.stop()
+        """Exits the application cleanly."""
         self.app.quit()                
 
     def run(self) -> None:

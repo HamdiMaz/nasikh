@@ -1,6 +1,6 @@
 # main.py
 
-from nasikh import Nasikh
+from src.nasikh import Nasikh
 
 def main():
     """Main function to run the Dictation Application."""

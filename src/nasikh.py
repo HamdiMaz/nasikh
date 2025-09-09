@@ -14,9 +14,10 @@ import numpy as np
 import sounddevice as sd
 from openai import OpenAI
 from typing import List, Dict
+from src.hotkey.hotkey_manager import HotkeyManager
 from pynput.keyboard import Key, Controller, GlobalHotKeys
 from PySide6.QtCore import Qt, QObject, QThread, Signal, Slot
-from PySide6.QtGui import QIcon, QAction
+from PySide6.QtGui import QIcon, QAction, QShortcut, QKeySequence
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -34,47 +35,11 @@ from PySide6.QtWidgets import (
 )
 
 
-class GlobalKeyListener(QObject):
-    # Define the signal that will be emitted when the hotkey is pressed
-    english_hotkey_pressed = Signal()
-    translation_hotkey_pressed = Signal()
-    arabic_hotkey_pressed = Signal()
-    cancel_hotkey_pressed = Signal()
-
-    def __init__(self):
-        super().__init__()
-        self._running = True
-        self.system: str = platform.system().lower()
-
-    @Slot()
-    def run(self):
-        """This method will be executed in the worker thread."""
-        if self.system == "darwin":
-            hotkeys = {
-                '<ctrl>+q': lambda: self.english_hotkey_pressed.emit(),
-                '<ctrl>+w': lambda: self.translation_hotkey_pressed.emit(),
-                '<ctrl>+a': lambda: self.arabic_hotkey_pressed.emit(),
-                '<esc>': self.cancel_hotkey_pressed.emit(),
-            }
-
-            # Start the listener in the background. DO NOT .join() it.
-            self.listener = GlobalHotKeys(hotkeys)
-            self.listener.start()
-
-        elif self.system in ["windows", "linux"]:
-            keyboard.add_hotkey('alt+q', callback=self.english_hotkey_pressed.emit)
-            keyboard.add_hotkey('alt+w', callback=self.translation_hotkey_pressed.emit)
-            keyboard.add_hotkey('alt+a', callback=self.arabic_hotkey_pressed.emit)
-            keyboard.add_hotkey('esc', callback=self.cancel_hotkey_pressed.emit)
-
-    def stop(self):
-        self._running = False
-        keyboard.remove_all_hotkeys()
-        if self.listener:
-            self.listener.stop()
-
-
 class RecordingWindow(QWidget):
+    """A simple window to indicate recording status."""
+
+    recording_cancelled = Signal()
+
     def __init__(self):
         super().__init__()
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
@@ -87,6 +52,9 @@ class RecordingWindow(QWidget):
         self.setLayout(self.layout)
         self.setFixedSize(300, 100)
         self.center_on_screen()
+
+        shortcut = QShortcut(QKeySequence("Escape"), self)
+        shortcut.activated.connect(self.recording_cancelled.emit)
 
     def center_on_screen(self):
         screen_geometry = QApplication.primaryScreen().geometry()
@@ -153,24 +121,11 @@ class Nasikh:
         self.icon: QIcon = QIcon("C:\\Users\\hamdy\\Documents\\nasikh\\nasikh_icon.ico")
         self.setting: QDialog = QDialog()
         self.recording_window: RecordingWindow = RecordingWindow()
+        self.recording_window.recording_cancelled.connect(self.cancel_recording)
 
-        # __________ Threading __________
-        self.thread = QThread()
-        self.worker = GlobalKeyListener()
-        self.worker.moveToThread(self.thread)
-
-        self.thread.started.connect(self.worker.run)
-
-        self.worker.english_hotkey_pressed.connect(lambda: self.toggle_dictation("english"))
-        self.worker.arabic_hotkey_pressed.connect(lambda: self.toggle_dictation("arabic"))
-        self.worker.translation_hotkey_pressed.connect(lambda: self.toggle_dictation("translation"))
-        self.worker.cancel_hotkey_pressed.connect(self.cancel_recording)
-
-        self.app.aboutToQuit.connect(self.thread.quit)
-        self.app.aboutToQuit.connect(self.worker.stop)
-        self.app.aboutToQuit.connect(self.thread.wait)
-
-        self.thread.start()
+        # __________ Hotkeys __________
+        self.hotkey = HotkeyManager()
+        self.hotkey.hotkey_pressed.connect(lambda lang: self.toggle_dictation(lang))
 
         # __________ GUI Fields __________
         # API

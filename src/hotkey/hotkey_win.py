@@ -7,7 +7,7 @@ ENGLISH_HOTKEY_ID = 1
 TRANSLATION_HOTKEY_ID = 2
 ARABIC_HOTKEY_ID = 3
 
-class HotkeyListenerForWindows(QObject):
+class HotkeyForWindows(QObject):
     """
     Listens for global hotkey events using the Windows API.
     """

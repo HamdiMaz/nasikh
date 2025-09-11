@@ -1,7 +1,7 @@
 import win32con 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
-from src.hotkey.hotkey_win import HotkeyListenerForWindows
+from src.hotkey.hotkey_win import HotkeyForWindows
 
 class HotkeyManager(QWidget):
     """
@@ -15,7 +15,7 @@ class HotkeyManager(QWidget):
         self.setGeometry(0, 0, 1, 1) 
         self.hide()
 
-        self.hotkey_listener = HotkeyListenerForWindows(self)
+        self.hotkey_listener = HotkeyForWindows(self)
         self.hotkey_listener.register_hotkeys()
     
     def nativeEvent(self, event_type, message):

@@ -1,4 +1,4 @@
 To Do list:
-- Separate Classes
-- Fix Calling api at start of the app
+- Separate Classes (Done)
+- Fix Calling api at start of the app (Done)
 - Mac OS Support

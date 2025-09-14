@@ -62,6 +62,11 @@ class RecordingWindow(QWidget):
         y = (screen_geometry.height() - self.height()) // 2
         self.move(x, y)
 
+    def show_window(self):
+        self.center_on_screen()
+        self.show()
+        self.activateWindow()
+
 
 class Nasikh:
     def __init__(self):
@@ -453,7 +458,7 @@ class Nasikh:
                 self.recording = True
                 self.mode = mode
                 self.start_recording()
-                self.recording_window.show()
+                self.recording_window.show_window()
 
     def process_and_paste(self, audio_buffer: io.BytesIO) -> None:
         """Transcribes audio, cleans it, and pastes the result."""

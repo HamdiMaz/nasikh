@@ -1,5 +1,5 @@
 from openai import OpenAI
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QTextEdit,
     QLineEdit,
+    QTabWidget,
 )
 
 
@@ -93,6 +94,7 @@ class TranscriptionTab(QWidget):
                  model: Optional[str], api_keys: Dict[str, Optional[str]]):
         
         super().__init__()
+        self.tab_name = "Transcription"
         self.transcription_endpoints = transcription_endpoints
         self.transcription_provider = provider
         self.transcription_model = model
@@ -161,6 +163,7 @@ class TranscriptionTab(QWidget):
 class APIKeysTab(QWidget):
     def __init__(self, api_keys: Dict[str, Optional[str]]):
         super().__init__()
+        self.tab_name = "API Keys"
         self.api_keys = api_keys
         
         self.groq_api_label = QLabel("Groq API:")
@@ -196,3 +199,10 @@ class APIKeysTab(QWidget):
         self._layout.addWidget(self.openrouter_api_label)
         self._layout.addWidget(self.openrouter_api_field)
         self._layout.addStretch(1)
+
+
+class TabsManager(QTabWidget):
+    def __init__(self, tabs: List[ChatTab | TranscriptionTab | APIKeysTab]):
+        super().__init__()
+        for tab in tabs:
+            self.addTab(tab, tab.tab_name)

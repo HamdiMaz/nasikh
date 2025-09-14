@@ -15,7 +15,7 @@ import sounddevice as sd
 from openai import OpenAI
 from typing import List, Dict
 from src.gui.tray import Tray
-from src.gui.tabs import ChatTab, TranscriptionTab, APIKeysTab
+from src.gui.tabs import ChatTab, TranscriptionTab, APIKeysTab, TabsManager
 from src.hotkey.hotkey_manager import HotkeyManager
 from src.gui.recording_window import RecordingWindow
 from pynput.keyboard import Key, Controller, GlobalHotKeys
@@ -386,18 +386,18 @@ class Nasikh:
 
         #____________ API Keys Tab ____________
 
-        self.api_keys_tab: APIKeysTab = APIKeysTab(self.api_keys)
+        self.api_keys_tab = APIKeysTab(self.api_keys)
 
         #____________ Transcription Tab ____________
 
-        self.transcription_tab: TranscriptionTab = TranscriptionTab(self.transcription_endpoints,
+        self.transcription_tab = TranscriptionTab(self.transcription_endpoints,
                                                                    self.transcription_provider,
                                                                    self.transcription_model,
                                                                    self.api_keys)
 
         #____________ English Tab ____________
 
-        self.english_tab: ChatTab = ChatTab("English", 
+        self.english_tab = ChatTab("English", 
                                     self.chat_endpoints, 
                                     self.english_provider, 
                                     self.english_model, 
@@ -406,7 +406,7 @@ class Nasikh:
 
         #____________ Arabic Tab ____________
 
-        self.arabic_tab: ChatTab = ChatTab("Arabic",
+        self.arabic_tab = ChatTab("Arabic",
                                    self.chat_endpoints,
                                    self.arabic_provider,
                                    self.arabic_model,
@@ -415,7 +415,7 @@ class Nasikh:
 
         #____________ Translation Tab ____________
 
-        self.translation_tab: ChatTab = ChatTab("Translation",
+        self.translation_tab = ChatTab("Translation",
                                         self.chat_endpoints,
                                         self.translation_provider,
                                         self.translation_model,
@@ -424,12 +424,13 @@ class Nasikh:
 
         #____________ Setting UI ____________
 
-        tab_widget = QTabWidget()
-        tab_widget.addTab(self.api_keys_tab, "API Keys")
-        tab_widget.addTab(self.transcription_tab, "Transcription")
-        tab_widget.addTab(self.english_tab, "English")
-        tab_widget.addTab(self.arabic_tab, "Arabic")
-        tab_widget.addTab(self.translation_tab, "Translation")
+        self.tab_manager = TabsManager([
+            self.api_keys_tab,
+            self.transcription_tab,
+            self.english_tab,
+            self.arabic_tab,
+            self.translation_tab
+        ])
 
         button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
@@ -438,10 +439,10 @@ class Nasikh:
         button_box.accepted.connect(self.save_setting_menu)
         button_box.rejected.connect(self.setting.reject)
 
-        main_layout = QVBoxLayout()
-        main_layout.addWidget(tab_widget)
-        main_layout.addWidget(button_box)
-        self.setting.setLayout(main_layout)
+        layout = QVBoxLayout()
+        layout.addWidget(self.tab_manager)
+        layout.addWidget(button_box)
+        self.setting.setLayout(layout)
         self.setting.setWindowTitle("Nasikh Settings")
         self.setting.setWindowIcon(self.icon)
 

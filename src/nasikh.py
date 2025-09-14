@@ -99,29 +99,10 @@ class Nasikh:
         self.tray.setting.connect(self.setting.show)
         self.recording_window: RecordingWindow = RecordingWindow()
         self.recording_window.recording_cancelled.connect(self.cancel_recording)
-        
 
         # __________ Hotkeys __________
         self.hotkey = HotkeyManager()
         self.hotkey.hotkey_pressed.connect(lambda lang: self.toggle_dictation(lang))
-
-        # __________ GUI Fields __________
-        # API
-        self.groq_api_field: QLineEdit = QLineEdit()
-        self.openrouter_api_field: QLineEdit = QLineEdit()
-        # Prompt
-        self.english_prompt_field: QTextEdit = QTextEdit()
-        self.arabic_prompt_field: QTextEdit = QTextEdit()
-        self.translation_prompt_field: QTextEdit = QTextEdit()
-        # Menus
-        self.transcription_provider_menu: QComboBox = None
-        self.transcription_model_menu: QComboBox = None
-        self.english_provider_menu: QComboBox = None
-        self.english_model_menu: QComboBox = None
-        self.arabic_provider_menu: QComboBox = None
-        self.arabic_model_menu: QComboBox = None
-        self.translation_provider_menu: QComboBox = None
-        self.translation_model_menu: QComboBox = None
 
         # __________ Logging __________
         # Set up logging
@@ -480,8 +461,8 @@ class Nasikh:
             return False
 
     def save_setting_menu(self):
-        self.api_keys["groq"] = self.groq_api_field.text().strip() or None
-        self.api_keys["openrouter"] = self.openrouter_api_field.text().strip() or None
+        self.api_keys["groq"] = self.api_keys_tab.groq_api_field.text().strip() or None
+        self.api_keys["openrouter"] = self.api_keys_tab.openrouter_api_field.text().strip() or None
 
         self.transcription_provider = self.transcription_tab.provider_menu.currentText()
         self.transcription_model = self.transcription_tab.model_menu.currentText()

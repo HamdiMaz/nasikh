@@ -15,6 +15,7 @@ import sounddevice as sd
 from openai import OpenAI
 from typing import List, Dict
 from src.gui.tray import Tray
+from src.gui.tabs import ChatTab, TranscriptionTab, APIKeysTab
 from src.hotkey.hotkey_manager import HotkeyManager
 from src.gui.recording_window import RecordingWindow
 from pynput.keyboard import Key, Controller, GlobalHotKeys
@@ -98,6 +99,7 @@ class Nasikh:
         self.tray.setting.connect(self.setting.show)
         self.recording_window: RecordingWindow = RecordingWindow()
         self.recording_window.recording_cancelled.connect(self.cancel_recording)
+        
 
         # __________ Hotkeys __________
         self.hotkey = HotkeyManager()
@@ -476,225 +478,80 @@ class Nasikh:
             if "401" in str(e):
                 self.log.debug(f"❌ Invalid API key for {provider}. Please check your configuration.")
             return False
-        
-    def get_provider_transcription_models(self, provider: str) -> List[str]:
-        client = OpenAI(
-            base_url=self.transcription_endpoints[provider],
-            api_key=self.api_keys[provider],
-        )
-        
-        models = client.models.list()
-        
-        if provider == "groq":
-            transcription_models = [
-                model.id for model in models.data if "whisper" in model.id.lower()
-            ]
-            return transcription_models
-        
-    def get_provider_chat_models(self, provider: str) -> List[str]:
-        client = OpenAI(
-            base_url=self.chat_endpoints[provider],
-            api_key=self.api_keys[provider],
-        )
-        
-        models = client.models.list()
-        chat_models = [model.id for model in models.data]
-        return chat_models
-    
-    def update_model_menu(self, model_menu: QComboBox, provider: str):
-        """Update the model combo box when provider changes"""
-        model_menu.clear()
-        models = self.get_provider_chat_models(provider)        
-        model_menu.addItems(models)
 
     def save_setting_menu(self):
         self.api_keys["groq"] = self.groq_api_field.text().strip() or None
         self.api_keys["openrouter"] = self.openrouter_api_field.text().strip() or None
 
-        self.transcription_provider = self.transcription_provider_menu.currentText()
-        self.transcription_model = self.transcription_model_menu.currentText()
+        self.transcription_provider = self.transcription_tab.provider_menu.currentText()
+        self.transcription_model = self.transcription_tab.model_menu.currentText()
 
-        self.english_provider = self.english_provider_menu.currentText()
-        self.english_model = self.english_model_menu.currentText()
-        self.english_prompt = self.english_prompt_field.toPlainText()
+        self.english_provider = self.english_tab.provider_menu.currentText()
+        self.english_model = self.english_tab.model_menu.currentText()
+        self.english_prompt = self.english_tab.prompt_field.toPlainText()
 
-        self.arabic_provider = self.arabic_provider_menu.currentText()
-        self.arabic_model = self.arabic_model_menu.currentText()
-        self.arabic_prompt = self.arabic_prompt_field.toPlainText()
+        self.arabic_provider = self.arabic_tab.provider_menu.currentText()
+        self.arabic_model = self.arabic_tab.model_menu.currentText()
+        self.arabic_prompt = self.arabic_tab.prompt_field.toPlainText()
 
-        self.translation_provider = self.translation_provider_menu.currentText()
-        self.translation_model = self.translation_model_menu.currentText()
-        self.translation_prompt = self.translation_prompt_field.toPlainText()
+        self.translation_provider = self.translation_tab.provider_menu.currentText()
+        self.translation_model = self.translation_tab.model_menu.currentText()
+        self.translation_prompt = self.translation_tab.prompt_field.toPlainText()
 
         self.save_json_config()
         self.setting.accept()              
 
     def run(self) -> None:
         """Main method to handle dictation"""
-        # print("✅ Dictation App ready!")
-
         # Load the configuration
         self.get_json_config()
 
         #____________ API Keys Tab ____________
 
-        groq_api_label = QLabel("Groq API:")
-        self.groq_api_field.setClearButtonEnabled(True)
-        self.groq_api_field.setEchoMode(QLineEdit.EchoMode.Password)
-        if self.api_keys.get("groq"):
-            self.groq_api_field.setText(self.api_keys["groq"])
-
-        openrouter_api_label = QLabel("OpenRouter API:")
-        self.openrouter_api_field.setClearButtonEnabled(True)
-        self.openrouter_api_field.setEchoMode(QLineEdit.EchoMode.Password)
-        if self.api_keys.get("openrouter"):
-            self.openrouter_api_field.setText(self.api_keys["openrouter"])
-
-        api_keys_layout = QVBoxLayout()
-        api_keys_layout.addWidget(groq_api_label)
-        api_keys_layout.addWidget(self.groq_api_field)
-        api_keys_layout.addWidget(openrouter_api_label)
-        api_keys_layout.addWidget(self.openrouter_api_field)
-        api_keys_layout.addStretch(1)
-
-        api_keys_tab = QWidget()
-        api_keys_tab.setLayout(api_keys_layout)
+        self.api_keys_tab: APIKeysTab = APIKeysTab(self.api_keys)
 
         #____________ Transcription Tab ____________
 
-        transcription_provider_label = QLabel("Transcription Provider:")
-        self.transcription_provider_menu = QComboBox()
-        self.transcription_provider_menu.addItems(self.transcription_endpoints.keys())
-        if self.transcription_provider is not None:
-            self.transcription_provider_menu.setCurrentText(self.transcription_provider)
-
-        transcription_model_label = QLabel("Transcription Model:")
-        models = self.get_provider_transcription_models(self.transcription_provider_menu.currentText())
-        self.transcription_model_menu = QComboBox()
-        self.transcription_model_menu.addItems(models)
-        if self.transcription_model is not None:
-            self.transcription_model_menu.setCurrentText(self.transcription_model)
-
-        transcription_layout = QVBoxLayout()
-        transcription_layout.addWidget(transcription_provider_label)
-        transcription_layout.addWidget(self.transcription_provider_menu)
-        transcription_layout.addWidget(transcription_model_label)
-        transcription_layout.addWidget(self.transcription_model_menu)
-        transcription_layout.addStretch(1)
-
-        transcription_tab = QWidget()
-        transcription_tab.setLayout(transcription_layout)
+        self.transcription_tab: TranscriptionTab = TranscriptionTab(self.transcription_endpoints,
+                                                                   self.transcription_provider,
+                                                                   self.transcription_model,
+                                                                   self.api_keys)
 
         #____________ English Tab ____________
 
-        english_provider_label = QLabel("English Chat Provider:")
-        self.english_provider_menu = QComboBox()
-        self.english_provider_menu.addItems(self.chat_endpoints.keys())
-        if self.english_provider is not None:
-            self.english_provider_menu.setCurrentText(self.english_provider)
-
-        english_model_label = QLabel("English Chat Model:")
-        models = self.get_provider_chat_models(self.english_provider_menu.currentText())
-        self.english_model_menu = QComboBox()
-        self.english_model_menu.addItems(models)
-        if self.english_model is not None:
-            self.english_model_menu.setCurrentText(self.english_model)
-        
-        self.english_provider_menu.currentTextChanged.connect(
-            lambda provider: self.update_model_menu(self.english_model_menu, provider)
-        )
-
-        self.english_prompt_field = QTextEdit()
-        if self.english_prompt is not None:
-            self.english_prompt_field.setText(self.english_prompt)
-
-        english_layout = QVBoxLayout()
-        english_layout.addWidget(english_provider_label)
-        english_layout.addWidget(self.english_provider_menu)
-        english_layout.addWidget(english_model_label)
-        english_layout.addWidget(self.english_model_menu)
-        english_layout.addWidget(self.english_prompt_field)
-        english_layout.addStretch(1)
-
-        english_tab = QWidget()
-        english_tab.setLayout(english_layout)
+        self.english_tab: ChatTab = ChatTab("English", 
+                                    self.chat_endpoints, 
+                                    self.english_provider, 
+                                    self.english_model, 
+                                    self.english_prompt, 
+                                    self.api_keys)
 
         #____________ Arabic Tab ____________
 
-        arabic_provider_label = QLabel("Arabic Chat Provider:")
-        self.arabic_provider_menu = QComboBox()
-        self.arabic_provider_menu.addItems(self.chat_endpoints.keys())
-        if self.arabic_provider is not None:
-            self.arabic_provider_menu.setCurrentText(self.arabic_provider)
-
-        arabic_model_label = QLabel("Arabic Chat Model:")
-        models = self.get_provider_chat_models(self.arabic_provider_menu.currentText())
-        self.arabic_model_menu = QComboBox()
-        self.arabic_model_menu.addItems(models)
-        if self.arabic_model is not None:
-            self.arabic_model_menu.setCurrentText(self.arabic_model)
-        
-        self.arabic_provider_menu.currentTextChanged.connect(
-            lambda provider: self.update_model_menu(self.arabic_model_menu, provider)
-        )
-
-        self.arabic_prompt_field = QTextEdit()
-        if self.arabic_prompt is not None:
-            self.arabic_prompt_field.setText(self.arabic_prompt)
-
-        arabic_layout = QVBoxLayout()
-        arabic_layout.addWidget(arabic_provider_label)
-        arabic_layout.addWidget(self.arabic_provider_menu)
-        arabic_layout.addWidget(arabic_model_label)
-        arabic_layout.addWidget(self.arabic_model_menu)
-        arabic_layout.addWidget(self.arabic_prompt_field)
-        arabic_layout.addStretch(1)
-
-        arabic_tab = QWidget()
-        arabic_tab.setLayout(arabic_layout)
+        self.arabic_tab: ChatTab = ChatTab("Arabic",
+                                   self.chat_endpoints,
+                                   self.arabic_provider,
+                                   self.arabic_model,
+                                   self.arabic_prompt,
+                                   self.api_keys)
 
         #____________ Translation Tab ____________
 
-        translation_provider_label = QLabel("Translation Chat Provider:")
-        self.translation_provider_menu = QComboBox()
-        self.translation_provider_menu.addItems(self.chat_endpoints.keys())
-        if self.translation_provider is not None:
-            self.translation_provider_menu.setCurrentText(self.translation_provider)
-
-        translation_model_label = QLabel("Translation Chat model:")
-        models = self.get_provider_chat_models(self.translation_provider_menu.currentText())
-        self.translation_model_menu = QComboBox()
-        self.translation_model_menu.addItems(models)
-        if self.translation_model is not None:
-            self.translation_model_menu.setCurrentText(self.translation_model)
-        
-        self.translation_provider_menu.currentTextChanged.connect(
-            lambda provider: self.update_model_menu(self.translation_model_menu, provider)
-        )
-
-        self.translation_prompt_field = QTextEdit()
-        if self.translation_prompt is not None:
-            self.translation_prompt_field.setText(self.translation_prompt)
-
-        translation_layout = QVBoxLayout()
-        translation_layout.addWidget(translation_provider_label)
-        translation_layout.addWidget(self.translation_provider_menu)
-        translation_layout.addWidget(translation_model_label)
-        translation_layout.addWidget(self.translation_model_menu)
-        translation_layout.addWidget(self.translation_prompt_field)
-        translation_layout.addStretch(1)
-
-        translation_tab = QWidget()
-        translation_tab.setLayout(translation_layout)
+        self.translation_tab: ChatTab = ChatTab("Translation",
+                                        self.chat_endpoints,
+                                        self.translation_provider,
+                                        self.translation_model,
+                                        self.translation_prompt,
+                                        self.api_keys)
 
         #____________ Setting UI ____________
 
         tab_widget = QTabWidget()
-        tab_widget.addTab(api_keys_tab, "API Keys")
-        tab_widget.addTab(transcription_tab, "Transcription")
-        tab_widget.addTab(english_tab, "English")
-        tab_widget.addTab(arabic_tab, "Arabic")
-        tab_widget.addTab(translation_tab, "Translation")
+        tab_widget.addTab(self.api_keys_tab, "API Keys")
+        tab_widget.addTab(self.transcription_tab, "Transcription")
+        tab_widget.addTab(self.english_tab, "English")
+        tab_widget.addTab(self.arabic_tab, "Arabic")
+        tab_widget.addTab(self.translation_tab, "Translation")
 
         button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel

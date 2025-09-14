@@ -527,11 +527,7 @@ class Nasikh:
         self.translation_prompt = self.translation_prompt_field.toPlainText()
 
         self.save_json_config()
-        self.setting.accept()
-
-    def exit_program(self) -> None:
-        """Exits the application cleanly."""
-        self.app.quit()                
+        self.setting.accept()              
 
     def run(self) -> None:
         """Main method to handle dictation"""

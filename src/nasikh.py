@@ -15,6 +15,7 @@ import sounddevice as sd
 from openai import OpenAI
 from typing import List, Dict
 from src.hotkey.hotkey_manager import HotkeyManager
+from src.gui.tray import Tray
 from pynput.keyboard import Key, Controller, GlobalHotKeys
 from PySide6.QtCore import Qt, QObject, QThread, Signal, Slot
 from PySide6.QtGui import QIcon, QAction, QShortcut, QKeySequence
@@ -26,8 +27,6 @@ from PySide6.QtWidgets import (
     QTabWidget,
     QLineEdit,
     QDialogButtonBox,
-    QSystemTrayIcon, 
-    QMenu,
     QDialog,
     QComboBox,
     QTextEdit,
@@ -124,6 +123,8 @@ class Nasikh:
         self.app.setStyle(QStyleFactory.create("macOS" if self.system == "darwin" else "Fusion"))
         self.icon: QIcon = QIcon("C:\\Users\\hamdy\\Documents\\nasikh\\nasikh_icon.ico")
         self.setting: QDialog = QDialog()
+        self.tray: Tray = Tray(self.icon, self.app)
+        self.tray.setting.connect(self.setting.show)
         self.recording_window: RecordingWindow = RecordingWindow()
         self.recording_window.recording_cancelled.connect(self.cancel_recording)
 
@@ -567,29 +568,6 @@ class Nasikh:
 
         # Load the configuration
         self.get_json_config()
-
-        #____________ System Tray ____________
-
-        # Create the system tray icon
-        tray = QSystemTrayIcon(self.icon, parent=self.app)
-        tray.setToolTip("Nasikh")
-        tray.setVisible(True)
-
-        # Create the menu
-        menu = QMenu()
-
-        # Create a "Setting" action
-        setting_action = QAction("Setting")
-        setting_action.triggered.connect(self.setting.show)
-        menu.addAction(setting_action)
-
-        # Create a "Quit" action
-        quit_action = QAction("Quit")
-        quit_action.triggered.connect(self.exit_program)
-        menu.addAction(quit_action)
-
-        # Set the menu for the system tray icon
-        tray.setContextMenu(menu)
 
         #____________ API Keys Tab ____________
 

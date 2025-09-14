@@ -103,64 +103,10 @@ class Nasikh:
         # __________ Hotkeys __________
         self.hotkey = HotkeyManager()
         self.hotkey.hotkey_pressed.connect(lambda lang: self.toggle_dictation(lang))
-
-        # __________ Logging __________
-        # Set up logging
-        self.log_level: str = "INFO"
-        self.setup_logging()
-        
-        # Log initialization
-        self.log.info("="*40)
-        self.log.info("Nasikh initialized")
-
-        # ___________ Performance __________
-        self.dictation_start: float = None
-        self.dictation_end: float = None
-        self.dictation_time: float = None
-        self.transcription_start: float = None
-        self.transcription_end: float = None
-        self.cleanup_start: float = None
-        self.cleanup_end: float = None
-        self.audio_processing_start: float = None
-        self.audio_processing_end: float = None
-
-    def setup_logging(self):
-        """Configure logging for the dictation app."""
-        # Create logger
-        self.log = logging.getLogger('Nasikh')
-        self.log.setLevel(self.log_level)
-
-        # Prevent duplicate logs if logger already has handlers
-        if self.log.handlers:
-            self.log.handlers.clear()
-        
-        # Create file handler
-        file_handler = logging.FileHandler("app.log", encoding='utf-8')
-        file_handler.setLevel(self.log_level)
-        
-        # Create formatter
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
-        
-        # Add formatter to handler
-        file_handler.setFormatter(formatter)
-        
-        # Add handler to logger
-        self.log.addHandler(file_handler)
-        
-        # Log the setup
-        # self.log.info("Logging setup completed")
     
     def transcript(self, audio) -> str:
         """Transcribes audio using the configured transcription model."""
         config = self.get_transcription_config()
-        
-        # Log provider and model
-        self.log.info(f"Transcription provider: {config['provider']}")
-        self.log.info(f"Transcription model: {config['model_name']}")
-
         client = OpenAI(
             base_url=config["api_endpoint"],
             api_key=config["api_key"],
@@ -178,24 +124,13 @@ class Nasikh:
         if config["provider"] == "groq":
             parameters["response_format"] = "text"
         
-        # Log the start of transcription
-        self.transcription_start = time.time()
-
         transcription = client.audio.transcriptions.create(**parameters)
-
-        # Log the end of transcription
-        self.transcription_end = time.time()
 
         return transcription
     
     def cleanup(self, user_input: str) -> str:
         """Cleans up the user input using the configured chat model."""
         config = self.get_chat_config()
-
-        # Log provider and model
-        self.log.info(f"Cleanup provider: {config['provider']}")
-        self.log.info(f"Cleanup model: {config['model_name']}")
-
         client = OpenAI(
             base_url=config["api_endpoint"],
             api_key=config["api_key"],
@@ -218,13 +153,7 @@ class Nasikh:
         if config["provider"] == "groq":
             parameters["reasoning_effort"] = "none"
         
-        # Log the start of cleanup
-        self.cleanup_start = time.time()
-
         completion = client.chat.completions.create(**parameters)
-        
-        # Log the end of cleanup
-        self.cleanup_end = time.time()
         
         return completion.choices[0].message.content
     
@@ -352,16 +281,7 @@ class Nasikh:
         file_size_mb = wav_buffer.getbuffer().nbytes / (1024 * 1024)
         duration_seconds = len(audio_data) / self.RATE
 
-        #log the audio
-        self.log.info(f"Audio size: {file_size_mb:.2f}MB")
-        self.log.info(f"Audio duration: {duration_seconds:.1f} seconds")
-
-        # Log dictation time
-        self.dictation_time = duration_seconds
-
         if file_size_mb > self.MAX_FILE_SIZE_MB:
-            # Log the file size warning
-            self.log.warning(f"File size exceeds {self.MAX_FILE_SIZE_MB}MB limit!")
             return None
         
         return wav_buffer
@@ -386,29 +306,12 @@ class Nasikh:
                 self.recording_window.hide()
                 
                 if audio_buffer is None:
-                    # Log the cancellation
-                    self.log.debug("Recording cancelled, no audio to process.")
                     return 
             
                 # Process the audio that was recorded
                 self.process_and_paste(audio_buffer)
 
-                # Log the end of dictation
-                self.dictation_end = time.time()
-
-                # Log the performance metrics
-                self.log.debug(f"Dictation completed in {self.dictation_end - self.dictation_start:.2f} seconds.")
-                self.log.debug(f"Recorded auido is {self.dictation_time:.2f} seconds.")
-                self.log.debug(f"Transcription completed in {self.transcription_end - self.transcription_start:.2f} seconds.")
-                self.log.debug(f"Cleanup completed in {self.cleanup_end - self.cleanup_start:.2f} seconds.")
-            
             else:
-                # Log the start of dictation
-                self.dictation_start = time.time()
-
-                # Log the dictation mode
-                self.log.info(f"Starting dictation in {mode} mode.") 
-
                 # If not recording, start a new one
                 self.recording = True
                 self.mode = mode
@@ -418,12 +321,8 @@ class Nasikh:
     def process_and_paste(self, audio_buffer: io.BytesIO) -> None:
         """Transcribes audio, cleans it, and pastes the result."""
         user_input = self.transcript(audio_buffer)
-        # Log the transcription result
-        self.log.info(f"Transcription result: {user_input}")
 
         clean_user_input = self.cleanup(user_input)
-        # Log the cleanup result
-        self.log.info(f"Cleanup result: {clean_user_input}")
 
         # Saving the original clipboard content
         try:
@@ -456,8 +355,6 @@ class Nasikh:
             return True
         
         except Exception as e:
-            if "401" in str(e):
-                self.log.debug(f"❌ Invalid API key for {provider}. Please check your configuration.")
             return False
 
     def save_setting_menu(self):

@@ -2,3 +2,6 @@ To Do list:
 - Separate Classes (Done)
 - Fix Calling api at start of the app (Done)
 - Mac OS Support
+- Custom Shortcut
+- Custom Mode
+- Pause Recording

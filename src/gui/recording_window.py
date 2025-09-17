@@ -20,7 +20,7 @@ class RecordingWindow(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self._layout = QVBoxLayout()
         self.label = QLabel("Recording...")
-        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setStyleSheet("font-size: 30px; color: red; background-color: rgba(255, 255, 255, 150); border-radius: 10px; padding: 20px;")
         self._layout.addWidget(self.label)
         self.setLayout(self._layout)

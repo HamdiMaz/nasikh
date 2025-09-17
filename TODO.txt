@@ -4,4 +4,4 @@ To Do list:
 - Mac OS Support
 - Custom Shortcut
 - Custom Mode
-- Pause Recording
+- Pause Recording (Done)

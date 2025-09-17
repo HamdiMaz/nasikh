@@ -12,6 +12,7 @@ class RecordingWindow(QWidget):
     """A simple window to indicate recording status."""
 
     recording_cancelled = Signal()
+    recording_paused = Signal()
 
     def __init__(self):
         super().__init__()
@@ -26,8 +27,11 @@ class RecordingWindow(QWidget):
         self.setFixedSize(300, 100)
         self.center_on_screen()
 
-        shortcut = QShortcut(QKeySequence("Escape"), self)
-        shortcut.activated.connect(self.recording_cancelled.emit)
+        cancel_shortcut = QShortcut(QKeySequence("Escape"), self)
+        cancel_shortcut.activated.connect(self.recording_cancelled.emit)
+
+        pause_shortcut = QShortcut(QKeySequence("Space"), self)
+        pause_shortcut.activated.connect(self.pause_recording)
 
     def center_on_screen(self):
         screen_geometry = QApplication.primaryScreen().geometry()
@@ -39,3 +43,13 @@ class RecordingWindow(QWidget):
         self.center_on_screen()
         self.show()
         self.activateWindow()
+
+    def pause_recording(self):
+        if self.label.text() == "Recording...":
+            self.recording_paused.emit()
+            self.label.setText("Paused")
+            self.label.setStyleSheet("font-size: 30px; color: gray; background-color: rgba(255, 255, 255, 150); border-radius: 10px; padding: 20px;")
+        else:
+            self.recording_paused.emit()
+            self.label.setText("Recording...")
+            self.label.setStyleSheet("font-size: 30px; color: red; background-color: rgba(255, 255, 255, 150); border-radius: 10px; padding: 20px;")

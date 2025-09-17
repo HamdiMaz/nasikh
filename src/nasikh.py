@@ -99,6 +99,7 @@ class Nasikh:
         self.tray.setting.connect(self.setting.show)
         self.recording_window: RecordingWindow = RecordingWindow()
         self.recording_window.recording_cancelled.connect(self.cancel_recording)
+        self.recording_window.recording_paused.connect(self.pause_toggle)
 
         # __________ Hotkeys __________
         self.hotkey = HotkeyManager()
@@ -286,6 +287,31 @@ class Nasikh:
         
         return wav_buffer
     
+    @Slot()
+    def pause_toggle(self) -> None:
+        """Pauses or resumes the current recording without stopping the stream."""
+        with self.thread_lock:
+            if self.stream and self.recording:
+                self.stream.stop()
+                self.stream.close()
+                self.stream = None 
+                self.recording = False
+
+            else:
+                self.recording = True
+
+                def callback(indata, frames, time, status):
+                    if self.recording:
+                        self.audio_chunks.append((indata * 32767).astype(np.int16).copy())
+                
+                self.stream = sd.InputStream(
+                    samplerate=self.RATE,
+                    channels=1,
+                    callback=callback,
+                    dtype='float32'
+                )
+                self.stream.start()
+
     @Slot()
     def cancel_recording(self) -> None:
         """Cancels the current recording without processing the audio."""

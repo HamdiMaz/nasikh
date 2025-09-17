@@ -83,6 +83,7 @@ class Nasikh:
         # __________ Operations __________
         self.mode: str | None = None
         self.recording: bool = False
+        self.paused: bool = False
 
         # ____________ System ____________
         self.system: str = platform.system().lower()
@@ -296,6 +297,7 @@ class Nasikh:
                 self.stream.close()
                 self.stream = None 
                 self.recording = False
+                self.paused = True
 
             else:
                 self.recording = True
@@ -316,7 +318,7 @@ class Nasikh:
     def cancel_recording(self) -> None:
         """Cancels the current recording without processing the audio."""
         with self.thread_lock:
-            if self.recording:
+            if self.recording or self.paused:
                 self.stop_recording()
                 self.recording = False
                 self.recording_window.hide()
@@ -325,7 +327,7 @@ class Nasikh:
     def toggle_dictation(self,  mode: str) -> None:
         """Starts or stops the dictation process."""
         with self.thread_lock:
-            if self.recording:
+            if self.recording or self.paused:
                 # If recording, stop it
                 audio_buffer = self.stop_recording()
                 self.recording = False

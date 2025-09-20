@@ -5,9 +5,7 @@ import sys
 import wave
 import json
 import time
-import logging
 import platform
-import keyboard
 import pyperclip
 import threading
 import numpy as np
@@ -18,20 +16,14 @@ from src.gui.tray import Tray
 from src.gui.tabs import ChatTab, TranscriptionTab, APIKeysTab, TabsManager
 from src.hotkey.hotkey_manager import HotkeyManager
 from src.gui.recording_window import RecordingWindow
-from pynput.keyboard import Key, Controller, GlobalHotKeys
-from PySide6.QtCore import Qt, QObject, QThread, Signal, Slot
-from PySide6.QtGui import QIcon, QAction, QShortcut, QKeySequence
+from pynput.keyboard import Key, Controller
+from PySide6.QtCore import Slot
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QWidget,
     QVBoxLayout,
-    QLabel,
     QApplication,
-    QTabWidget,
-    QLineEdit,
     QDialogButtonBox,
     QDialog,
-    QComboBox,
-    QTextEdit,
     QStyleFactory,
 )
 
